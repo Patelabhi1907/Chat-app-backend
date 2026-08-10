@@ -121,13 +121,15 @@ function broadcastOnlineUsers() {
 
 io.on('connection', (socket) => {
     socket.on('register', (userId) => {
-        // Remove stale entries for same user
         for (const [sid, uid] of onlineUsers.entries()) {
             if (uid === userId && sid !== socket.id) onlineUsers.delete(sid);
         }
         onlineUsers.set(socket.id, userId);
         socket.userId = userId;
-        broadcastOnlineUsers();
+        // Send current list back to registering socket immediately
+        socket.emit('online_users', [...onlineUsers.values()]);
+        // Broadcast to everyone else
+        socket.broadcast.emit('online_users', [...onlineUsers.values()]);
     });
 
     socket.on('send_message', async ({ senderId, receiverId, text, tempId }) => {
